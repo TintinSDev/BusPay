@@ -7,6 +7,8 @@ import CustomizableReports from './client/CustomizableReports';
 import Dashboard from './client/Dashboard';
 import Navbar from './client/Navbar';
 import { AuthProvider } from './client/AuthContext';
+import 'react-time-picker/dist/TimePicker.css';
+
 import './styles.css';
 
 const App = () => {

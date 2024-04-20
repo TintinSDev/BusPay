@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TimePicker from 'react-time-picker';
+// import TimePicker from 'react-time-picker';
 import PropTypes from 'prop-types';
 // import { useAuth } from './AuthContext'; // Assuming you have an AuthContext
 
@@ -106,29 +106,23 @@ const TripManagement = ({ trips, onAddTrip, onUpdateTrip, onDeleteTrip }) => {
       alert('Failed to delete trip');
     }
   };
-  const handleDepartureTimeChange = (time) => {
-    setDepartureTime(time);
-  };
-  const handleArrivalTimeChange = (time) => {
-    setArrivalTime(time);
-  };
+  // const handleDepartureTimeChange = (time) => {
+  //   setDepartureTime(time);
+  // };
+  // const handleArrivalTimeChange = (time) => {
+  //   setArrivalTime(time);
+  // };
 
   return (
     <div>
       <h2>Trip Management</h2>
       <div>
         <h3>Add Trip</h3>
-        <TimePicker
-        value={departureTime}
-        onChange={handleDepartureTimeChange}
-        placeholder="Departure Time"
-      />
-      {/* Use a time picker component for arrival time */}
-      <TimePicker
-        value={arrivalTime}
-        onChange={handleArrivalTimeChange}
-        placeholder="Arrival Time"
-      />
+        <label htmlFor="departureTime">Departure Time</label> <br />
+        <input type="datetime-local" placeholder="Departure Time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} /> <br />
+        <label htmlFor="arrivalTime">Arrival Time</label> <br />
+        <input type="datetime-local" placeholder="Arrival Time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} /> <br />
+        <br />
         <input type="text" placeholder="Route" value={route} onChange={(e) => setRoute(e.target.value)} />
         <input type="text" placeholder="Bus Identifier" value={busIdentifier} onChange={(e) => setBusIdentifier(e.target.value)} />
         <button onClick={handleAddTrip}>Add Trip</button>
