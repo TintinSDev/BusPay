@@ -72,6 +72,17 @@ class Trip(db.Model):
         
 # Trips
 
+@app.route('/trips', methods=['GET'])
+def get_trips():
+    trips = Trip.query.all()
+    return Trips_schema.jsonify(trips)
+
+@app.route('/trips/<int:trip_id>', methods=['GET'])
+def get_trip(trip_id):
+    trip = Trip.query.get(trip_id)
+    if not trip:
+        return jsonify({'error': 'Trip not found'}), 404
+    return Trip_schema.jsonify(trip)
 
 @app.route('/trips', methods=['POST'])
 def add_trip():
@@ -100,17 +111,7 @@ def add_trip():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/trips', methods=['GET'])
-def get_trips():
-    trips = Trip.query.all()
-    return Trips_schema.jsonify(trips)
 
-@app.route('/trips/<int:trip_id>', methods=['GET'])
-def get_trip(trip_id):
-    trip = Trip.query.get(trip_id)
-    if not trip:
-        return jsonify({'error': 'Trip not found'}), 404
-    return Trip_schema.jsonify(trip)
 
 @app.route('/trips/<int:trip_id>', methods=['PUT'])
 def update_trip(trip_id):
@@ -119,8 +120,8 @@ def update_trip(trip_id):
         return jsonify({'error': 'Trip not found'}), 404
 
     data = request.get_json()
-    trip.departure_time = datetime.fromisoformat(data['departureTime'])
-    trip.arrival_time = datetime.fromisoformat(data['arrivalTime'])
+    trip.departure_time = data['departureTime']
+    trip.arrival_time = data['arrivalTime']
     trip.route = data['route']
     trip.bus_identifier = data['busIdentifier']
 
