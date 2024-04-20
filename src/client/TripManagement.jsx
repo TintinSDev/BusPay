@@ -1,40 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // import TimePicker from 'react-time-picker';
 import PropTypes from 'prop-types';
+
 // import { useAuth } from './AuthContext'; // Assuming you have an AuthContext
 
-const TripManagement = ({ trips, onAddTrip, onUpdateTrip, onDeleteTrip }) => {
-//   const { user, isLoading } = useAuth();
+const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
   const [departureTime, setDepartureTime] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
   const [route, setRoute] = useState('');
   const [busIdentifier, setBusIdentifier] = useState('');
+  const [ trips, setTrips] = useState([]); // Initialize trips as an empty array
+  
+  
+  useEffect(() => {
+    fetchTrips();
+  }, []);
 
-  // Check if the user is a bus operator or an admin
-//   const isBusOperatorOrAdmin = user && (user.role === 'bus_operator' || user.role === 'admin');
+  const fetchTrips = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/trips');
+      const data = await response.json();
 
-//   if (isLoading) {
-//     return <div>Loading...</div>;
-//   }
+      if (!response.ok) {
+        throw new Error('Failed to fetch trips');
+      }
 
-//   if (!isBusOperatorOrAdmin) {
-//     return <div>You do not have permission to access this page.</div>;
-//   }
+      setTrips(data);
+    } catch (error) {
+      console.error('Error fetching trips:', error);
+      alert('Failed to fetch trips. Contact Support.');
+    }
+  };
 
+  //  Adding trips
   const handleAddTrip = async () => {
-    // Validate form fields
     if (!departureTime.trim() || !arrivalTime.trim() || !route.trim() || !busIdentifier.trim()) {
       alert('Please fill all fields');
       return;
     }
 
     try {
-      // Send trip data to backend
       const response = await fetch('http://127.0.0.1:5000/trips', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}` // Include the user's authentication token
         },
         body: JSON.stringify({
           departureTime,
@@ -43,75 +52,87 @@ const TripManagement = ({ trips, onAddTrip, onUpdateTrip, onDeleteTrip }) => {
           busIdentifier,
         }),
       });
+      const data = await response.json();
+     
 
-    //   if (!response.ok) {
-    //     throw new Error('Failed to add trip');
-    //   }
-
-      // Call onAddTrip function passed from parent component
-      onAddTrip({ departureTime, arrivalTime, route, busIdentifier });
+      if (!response.ok) {
+        throw new Error('Failed to add trip');
+      }
+      setTrips((prevTrips) => [...prevTrips, data]);
+      onAddTrip(data);
+      clearForm();
+      alert('Trip added successfully');
     } catch (error) {
       console.error('Error adding trip:', error);
-      alert('Failed to add trip');
+      alert('Error adding trip. Please try again. If the issue persists, please contact support to add trip');
     }
   };
 
   const handleUpdateTrip = async (tripId) => {
     try {
-      // Send updated trip data to backend
+      const tripToUpdate = trips.find((trip) => trip.id === tripId);
+      const updatedTripData = {
+        departure_time: departureTime || tripToUpdate.departure_time,
+        arrival_time: arrivalTime || tripToUpdate.arrival_time,
+        route: route || tripToUpdate.route,
+        bus_identifier: busIdentifier || tripToUpdate.bus_identifier,
+      };
+  
       const response = await fetch(`http://127.0.0.1:5000/trips/${tripId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}` // Include the user's authentication token
         },
-        body: JSON.stringify({
-          departureTime,
-          arrivalTime,
-          route,
-          busIdentifier,
-        }),
+        body: JSON.stringify(updatedTripData),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to update trip');
       }
-
-      // Call onUpdateTrip function passed from parent component
-      onUpdateTrip(tripId);
+  
+      const updatedTrip = await response.json();
+  
+      setTrips((prevTrips) =>
+        prevTrips.map((trip) => (trip.id === tripId ? updatedTrip : trip))
+      );
+      onUpdateTrip(updatedTrip);
+      alert('Trip updated successfully');
     } catch (error) {
       console.error('Error updating trip:', error);
-      alert('Failed to update trip');
+      alert('Failed to update trip. Contact Support');
     }
   };
-
   const handleDeleteTrip = async (tripId) => {
     try {
-      // Send request to delete trip to backend
       const response = await fetch(`http://127.0.0.1:5000/trips/${tripId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${user.token}` // Include the user's authentication token
-        }
       });
-
+      console.log('Server response:', response);
+  
       if (!response.ok) {
-        throw new Error('Failed to delete trip');
+        throw new Error('Failed to delete trip. Please try again later.');
       }
-
-      // Call onDeleteTrip function passed from parent component
-      onDeleteTrip(tripId);
+  
+      const data = await response.json();
+  
+      setTrips((prevTrips) => prevTrips.filter((trip) => trip.id !== tripId));
+      onDeleteTrip(data);
+     
+   
+      alert('Trip deleted successfully');
     } catch (error) {
       console.error('Error deleting trip:', error);
-      alert('Failed to delete trip');
+      // Provide more informative error messages to users
+      alert('Failed to delete trip. COntact Support.');
     }
   };
-  // const handleDepartureTimeChange = (time) => {
-  //   setDepartureTime(time);
-  // };
-  // const handleArrivalTimeChange = (time) => {
-  //   setArrivalTime(time);
-  // };
+  
+  const clearForm = () => {
+    setDepartureTime('');
+    setArrivalTime('');
+    setRoute('');
+    setBusIdentifier('');
+  };
 
   return (
     <div>
@@ -123,32 +144,65 @@ const TripManagement = ({ trips, onAddTrip, onUpdateTrip, onDeleteTrip }) => {
         <label htmlFor="arrivalTime">Arrival Time</label> <br />
         <input type="datetime-local" placeholder="Arrival Time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} /> <br />
         <br />
-        <input type="text" placeholder="Route" value={route} onChange={(e) => setRoute(e.target.value)} />
-        <input type="text" placeholder="Bus Identifier" value={busIdentifier} onChange={(e) => setBusIdentifier(e.target.value)} />
+             {/* Dropdown for selecting route */}
+             <label htmlFor="route">Route</label> <br /> 
+        <select value={route} onChange={(e) => setRoute(e.target.value)}>
+          <option value="">Select Route</option> 
+          {/* Populate options dynamically */}
+          {Array.from({ length: 10 }, (_, i) => (
+            <option key={i + 1} value={`Route ${i + 1}`}>Route {i + 1}</option>
+          ))}
+        </select> <br /> <br />
+        {/* Dropdown for selecting bus identifier */}
+        <label htmlFor="busIdentifier">Bus Identifier</label> <br />
+        <select value={busIdentifier} onChange={(e) => setBusIdentifier(e.target.value)}>
+          <option value="">Select Bus Identifier</option> <br />
+          {/* Populate options dynamically */}
+          {Array.from({ length: 10 }, (_, i) => (
+            <option key={i + 1} value={`Bus ${i + 1}`}>Bus {i + 1}</option>
+          ))}
+        </select> 
+        <br /> <br />
         <button onClick={handleAddTrip}>Add Trip</button>
       </div>
       <div>
-        <h3>Trips</h3>
-        {trips ? (
-          <ul>
-            {trips.map((trip, index) => (
-              <li key={index}>
-                Departure Time: {trip.departureTime}, Arrival Time: {trip.arrivalTime}, Route: {trip.route}, Bus Identifier: {trip.busIdentifier}
-                <button onClick={() => handleUpdateTrip(index)}>Update</button>
-                <button onClick={() => handleDeleteTrip(index)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No trips available</p>
-        )}
-      </div>
+  <h3>Trips</h3>
+  {trips && trips.length > 0 ? (
+    <table>
+      <thead>
+        <tr>
+          <th>Departure Time</th>
+          <th>Arrival Time</th>
+          <th>Route</th>
+          <th>Bus Identifier</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {trips.map((trip) => (
+          <tr key={trip.id}>
+            <td>{trip.departure_time}</td>
+            <td>{trip.arrival_time}</td>
+            <td>{trip.route}</td>
+            <td>{trip.bus_identifier}</td>
+            <td>
+              <button onClick={() => handleUpdateTrip(trip.id)}>Update</button>
+              <button onClick={() => handleDeleteTrip(trip.id)}>Delete</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <p>No trips available</p>
+  )}
+</div>
     </div>
   );
 };
 
 TripManagement.propTypes = {
-  trips: PropTypes.array.isRequired,
+  
   onAddTrip: PropTypes.func.isRequired,
   onUpdateTrip: PropTypes.func.isRequired,
   onDeleteTrip: PropTypes.func.isRequired,

@@ -35,7 +35,7 @@ function Login({ handleSignIn }) {
 
         // Redirect to the home page or any other desired page
         handleSignIn();
-        navigate("/"); // This will navigate the user to the home page after successful login
+        navigate("/trip-management"); // This will navigate the user to the home page after successful login
       } else {
         alert(data.error || "Invalid email address or password");
       }

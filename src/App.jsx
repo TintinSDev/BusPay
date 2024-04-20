@@ -16,6 +16,27 @@ const App = () => {
     // Handle payment logic here
     console.log('Payment data:', paymentData);
   };
+  const handleAddTrip = (tripData) => {
+    // Handle trip management logic here
+    console.log('Trip data:', tripData);
+  };
+  const handleUpdateTrip = (tripData) => {
+    // Handle trip management logic here
+    console.log('Trip data:', tripData);
+  };
+  const handleDeleteTrip = (tripData) => {
+    // Handle trip management logic here
+    console.log('Trip data:', tripData);
+
+  };
+  const handleGenerateReport = (reportData) => {
+    // Handle report generation logic here
+    console.log('Report data:', reportData);
+  };
+  const handleExportReport = (reportData) => {
+    // Handle report export logic here
+    console.log('Report data:', reportData);
+  };
 
   return (
     <Router>
@@ -42,12 +63,13 @@ const App = () => {
           </div>
           <Routes>
             <Route path="/mobile-payment" element={<FareCollection onPayment={handlePayment} />} />
-            <Route path="/trip-management" element={<TripManagement />} />
-            <Route path="/fare-collection" element={<FareCollection />} />
-            <Route path="/customizable-reports" element={<CustomizableReports />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registration" element={<Registration />} />
+            <Route path="/trip-management" element={<TripManagement onAddTrip = {handleAddTrip} onUpdateTrip = {handleUpdateTrip} onDeleteTrip = {handleDeleteTrip} />} />
+           
+            <Route path="/customizable-reports" element={<CustomizableReports onGenerateReport={handleGenerateReport}onExportReport={ handleExportReport} />} />
+            <Route path="/login" element={<Login handleSignIn={() => {}} />} />
+            <Route path="/registration" element={<Registration handleRegister={() => {}} />}/>
             <Route path="/dashboard" element={<Dashboard />} />
+            
           </Routes>
         </div>
       </AuthProvider>
