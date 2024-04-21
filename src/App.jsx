@@ -9,6 +9,7 @@ import Navbar from './client/Navbar';
 import { AuthProvider } from './client/AuthContext';
 import vid2 from './assets/vid2.mp4';
 import 'react-time-picker/dist/TimePicker.css';
+import MyScreen from './client/Inta';  
 
 import './styles.css';
 
@@ -73,6 +74,7 @@ const App = () => {
             <Route path="/login" element={<Login handleSignIn={() => {}} />} />
             <Route path="/registration" element={<Registration handleRegister={() => {}} />}/>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/inta" element={<MyScreen />} />
             
           </Routes>
         </div>

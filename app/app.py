@@ -3,16 +3,19 @@ import json, requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from mpesa_payment import MpesaPayment
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+from os import environ
 
 app = Flask(__name__)
 BASEDIR = os.path.join(os.path.dirname(__file__))
 
 CORS(app)
-CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+# CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+CORS(app, origins="http://127.0.0.1:5173")
+
 
 
 
@@ -31,8 +34,23 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 migrate = Migrate(app, db)
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @app.route('/trips', methods=['OPTIONS'])
+def handle_options():
+    return jsonify(), 200, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    }
+    
+
+@app.route('/payments', methods=['OPTIONS'])
 def handle_options():
     return jsonify(), 200, {
         'Access-Control-Allow-Origin': '*',
@@ -77,21 +95,28 @@ class Trip(db.Model):
         
 #  payments
 class Payment(db.Model):
+    __tablename__ = 'payments'
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     payment_method = db.Column(db.String(50), nullable=False)
-    success = db.Column(db.Boolean, nullable=False)
-    error_message = db.Column(db.String(255))
-    trip_id = db.Column(db.Integer, db.ForeignKey('trip.id'), nullable=False)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=False)
     trip = db.relationship('Trip', backref=db.backref('payments', lazy=True))
+    
     def __init__(self, amount, phone_number, payment_method, trip_id):
         self.amount = amount
         self.phone_number = phone_number
         self.payment_method = payment_method
         self.trip_id = trip_id
-        self.success = False
-        self.error_message = None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'phone_number': self.phone_number,
+            'payment_method': self.payment_method,
+            'trips_id': self.trip_id
+        }
         
 
     def __repr__(self):
@@ -99,12 +124,15 @@ class Payment(db.Model):
     
 
 @app.route("/payments", methods=["POST"])
+@cross_origin(origin="http://127.0.0.1:5173")
 def process_payment():
     data = request.get_json()
     amount = data.get('amount')
     phone_number = data.get('phoneNumber')
+    payment_method = data.get('paymentMethod')
     
-    if not amount or not phone_number:
+    
+    if not all([amount, phone_number, payment_method]):
         return jsonify({'error': 'Amount and phone number are required'}), 400
 
     try:
@@ -112,9 +140,11 @@ def process_payment():
         authorization = json.loads(mpesa.authorization())
         access_token = authorization["access_token"]
         
-        callback_url = f"{request.host}/confirm_payment"
+        callback_url = f"{request.host}/confirm_payment" \
+            if environ.get("ENVIRONMENT") == "PRODUCTION" \
+            else "https://picpazz.com"
         
-        payment_response = mpesa.stk_push(access_token, amount=amount, callback_url=callback_url, reference="0020023", description="Test payment")
+        payment_response = mpesa.stk_push(access_token, amount=amount, callback_url=callback_url)
         
         # Record the payment in the database
         payment = Payment(amount=amount, phone_number=phone_number, payment_method='M-Pesa')
@@ -124,9 +154,13 @@ def process_payment():
         return jsonify({'success': True, 'response': json.loads(payment_response)}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-
     
-MOBILE_MONEY_REFUND_API = "https://example.com/mobile_money/api/refund"
+@app.route("/confirm_payment")
+def confirm_payment():
+    print(request.get_json)
+    return "Thank you"
+    
+MOBILE_MONEY_REFUND_API = "https://sandbox.safaricom.co.ke/refund"
 
 @app.route('/payments/<int:payment_id>/refund', methods=['POST'])
 def refund_payment(payment_id):
@@ -169,28 +203,28 @@ def get_trip_payments(trip_id):
     return jsonify({'trip_id': trip_id, 'payments': payment_data}), 200
     
     # MONILE-PAYMENTS
-MOBILE_MONEY_API = "https://example.com/mobile_money/api/pay"
-API_KEY = "YOUR_API_KEY"
+# MOBILE_MONEY_API = "https://example.com/mobile_money/api/pay"
+# API_KEY = "YOUR_API_KEY"
 
-def initiate_payment(amount, user_id):
-    data = {
-        "amount": amount,
-        "user_id": user_id
-    }
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-    try:
-        response = requests.post(MOBILE_MONEY_API, json=data, headers=headers)
-        response.raise_for_status()  # Raise exception for non-2xx status codes
-        return "Payment initiated successfully"
-    except requests.exceptions.RequestException as e:
-        # Handle any exceptions that occur during the request (e.g., network errors)
-        return f"Failed to initiate payment: {e}"
-    except Exception as e:
-        # Handle any other unexpected exceptions
-        return f"An unexpected error occurred: {e}"
+# def initiate_payment(amount, user_id):
+#     data = {
+#         "amount": amount,
+#         "user_id": user_id
+#     }
+#     headers = {
+#         "Authorization": f"Bearer {API_KEY}",
+#         "Content-Type": "application/json"
+#     }
+#     try:
+#         response = requests.post(MOBILE_MONEY_API, json=data, headers=headers)
+#         response.raise_for_status()  # Raise exception for non-2xx status codes
+#         return "Payment initiated successfully"
+#     except requests.exceptions.RequestException as e:
+#         # Handle any exceptions that occur during the request (e.g., network errors)
+#         return f"Failed to initiate payment: {e}"
+#     except Exception as e:
+#         # Handle any other unexpected exceptions
+#         return f"An unexpected error occurred: {e}"
 fare_transactions = []
 
 # Endpoint to record fare transactions
