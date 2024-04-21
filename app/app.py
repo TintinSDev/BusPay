@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, redirect, url_for
+from flask import Flask, request, jsonify, Blueprint
+import json, requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_cors import CORS
-from datetime import datetime
+from mpesa_payment import MpesaPayment
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
@@ -18,6 +19,10 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 # Database connection
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASEDIR, 'app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# payment bleuprints
+payments_bp = Blueprint('payments', __name__)
+app.register_blueprint(payments_bp)
 
 # Init db
 db = SQLAlchemy(app)
@@ -70,8 +75,153 @@ class Trip(db.Model):
             'busIdentifier': self.bus_identifier
         }
         
-# Trips
+#  payments
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    payment_method = db.Column(db.String(50), nullable=False)
+    success = db.Column(db.Boolean, nullable=False)
+    error_message = db.Column(db.String(255))
+    trip_id = db.Column(db.Integer, db.ForeignKey('trip.id'), nullable=False)
+    trip = db.relationship('Trip', backref=db.backref('payments', lazy=True))
+    def __init__(self, amount, phone_number, payment_method, trip_id):
+        self.amount = amount
+        self.phone_number = phone_number
+        self.payment_method = payment_method
+        self.trip_id = trip_id
+        self.success = False
+        self.error_message = None
+        
 
+    def __repr__(self):
+        return f"<Payment {self.id}>" # Mobile Money or Cash
+    
+
+@app.route("/payments", methods=["POST"])
+def process_payment():
+    data = request.get_json()
+    amount = data.get('amount')
+    phone_number = data.get('phoneNumber')
+    
+    if not amount or not phone_number:
+        return jsonify({'error': 'Amount and phone number are required'}), 400
+
+    try:
+        mpesa = MpesaPayment(app.config, phone_number)
+        authorization = json.loads(mpesa.authorization())
+        access_token = authorization["access_token"]
+        
+        callback_url = f"{request.host}/confirm_payment"
+        
+        payment_response = mpesa.stk_push(access_token, amount=amount, callback_url=callback_url, reference="0020023", description="Test payment")
+        
+        # Record the payment in the database
+        payment = Payment(amount=amount, phone_number=phone_number, payment_method='M-Pesa')
+        db.session.add(payment)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'response': json.loads(payment_response)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    
+MOBILE_MONEY_REFUND_API = "https://example.com/mobile_money/api/refund"
+
+@app.route('/payments/<int:payment_id>/refund', methods=['POST'])
+def refund_payment(payment_id):
+    payment = Payment.query.get(payment_id)
+    if not payment:
+        return jsonify({'error': 'Payment not found'}), 404
+
+    try:
+        # Initiate refund through mobile money API
+        refund_data = {
+            'amount': payment.amount,
+            'phone_number': payment.phone_number
+        }
+        headers = {
+            'Authorization': 'Bearer YOUR_API_KEY',
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(MOBILE_MONEY_REFUND_API, json=refund_data, headers=headers)
+        
+        if response.ok:
+            # Refund successful, delete payment record
+            db.session.delete(payment)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Payment refunded successfully'}), 200
+        else:
+            # Refund failed
+            return jsonify({'error': 'Failed to refund payment. Mobile money API returned an error.'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/trips/<int:trip_id>/payments', methods=['GET'])
+def get_trip_payments(trip_id):
+    trip = Trip.query.get(trip_id)
+    if not trip:
+        return jsonify({'error': 'Trip not found'}), 404
+
+    payments = Payment.query.filter_by(trip_id=trip_id).all()
+    payment_data = [{'id': payment.id, 'amount': payment.amount, 'phone_number': payment.phone_number, 'payment_method': payment.payment_method} for payment in payments]
+
+    return jsonify({'trip_id': trip_id, 'payments': payment_data}), 200
+    
+    # MONILE-PAYMENTS
+MOBILE_MONEY_API = "https://example.com/mobile_money/api/pay"
+API_KEY = "YOUR_API_KEY"
+
+def initiate_payment(amount, user_id):
+    data = {
+        "amount": amount,
+        "user_id": user_id
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    try:
+        response = requests.post(MOBILE_MONEY_API, json=data, headers=headers)
+        response.raise_for_status()  # Raise exception for non-2xx status codes
+        return "Payment initiated successfully"
+    except requests.exceptions.RequestException as e:
+        # Handle any exceptions that occur during the request (e.g., network errors)
+        return f"Failed to initiate payment: {e}"
+    except Exception as e:
+        # Handle any other unexpected exceptions
+        return f"An unexpected error occurred: {e}"
+fare_transactions = []
+
+# Endpoint to record fare transactions
+@app.route("/fare_transactions", methods=["POST"])
+def record_fare_transaction():
+    data = request.get_json()
+    fare_transactions.append(data)
+    return jsonify({"message": "Fare transaction recorded successfully"}), 201
+
+# Endpoint to handle fare refunds
+@app.route("/fare_refunds", methods=["POST"])
+def handle_fare_refund():
+    data = request.get_json()
+    # Logic to process fare refund
+    return jsonify({"message": "Fare refund processed successfully"}), 200
+
+# Report Model
+@app.route('/')
+def index():
+    return 'Hello, World!'
+    
+# Trips
+class TripSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'departure_time', 'arrival_time', 'route', 'bus_identifier')
+
+Trip_schema = TripSchema()
+Trips_schema = TripSchema(many=True)
+
+with app.app_context():
+    db.create_all()
 @app.route('/trips', methods=['GET'])
 def get_trips():
     trips = Trip.query.all()
@@ -138,19 +288,6 @@ def delete_trip(trip_id):
     db.session.commit()
     return jsonify({'message': 'Trip deleted successfully'})
 
-class TripSchema(ma.Schema):
-    class Meta:
-        fields = ('id', 'departure_time', 'arrival_time', 'route', 'bus_identifier')
-
-Trip_schema = TripSchema()
-Trips_schema = TripSchema(many=True)
-
-with app.app_context():
-    db.create_all()
-
-@app.route('/')
-def index():
-    return 'Hello, World!'
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -188,36 +325,6 @@ def login():
     return jsonify({'message': 'Login successful'}), 200
 
 
-
-# user_accounts = [
-#     {"username": "admin", "role": "admin"},
-#     {"username": "operator1", "role": "operator"},
-# ]
-
-# # Endpoint to get all user accounts
-# @app.route("/users", methods=["GET"])
-# def get_user_accounts():
-#     return jsonify(user_accounts)
-
-# # Endpoint to add a new user account
-# @app.route("/users", methods=["POST"])
-# def add_user_account():
-#     data = request.get_json()
-#     user_accounts.append(data)
-#     return jsonify({"message": "User account added successfully"}), 201
-
-# # Endpoint to edit user account
-# @app.route("/users/<username>", methods=["PUT"])
-# def edit_user_account(username):
-#     data = request.get_json()
-#     # Logic to update user account
-#     return jsonify({"message": "User account updated successfully"}), 200
-
-# # Endpoint to deactivate user account
-# @app.route("/users/<username>", methods=["DELETE"])
-# def deactivate_user_account(username):
-#     # Logic to deactivate user account
-#     return jsonify({"message": "User account deactivated successfully"}), 200
 
 if __name__ == '__main__':
     with app.app_context():

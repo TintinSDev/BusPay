@@ -1,10 +1,13 @@
 
 import { useState } from 'react';
+// import RefundButton from './RefundButton';
 import PropTypes from 'prop-types';
+
 
 const FareCollection = ({ onPayment }) => {
     const [amount, setAmount] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
 
     const handlePayment = async () => {
         // Validate form fields
@@ -15,7 +18,7 @@ const FareCollection = ({ onPayment }) => {
 
         try {
             // Make an API call to process the payment
-            const response = await fetch('YOUR_PAYMENT_API_ENDPOINT', {
+            const response = await fetch('http://127.0.0.1:5000/payments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -42,12 +45,20 @@ const FareCollection = ({ onPayment }) => {
         }
     };
 
+    
+        // const handleRefundSuccess = () => {
+        //   // Optionally, you can perform actions after successful refund
+        //   // For example, updating UI, fetching updated payment history, etc.
+        // };
+
     return (
         <div>
             <h2>Mobile Money Payment</h2>
             <input type="text" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
             <input type="text" placeholder="Phone Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+            <input type = "text" placeholder='Payment Method' value = {paymentMethod} onChange = {(e) => setPaymentMethod(e.target.value)} />
             <button onClick={handlePayment}>Transact Mobile Payment</button>
+            {/* <RefundButton paymentId={payment.id} onRefund={handleRefundSuccess} /> */}
         </div>
     );
 

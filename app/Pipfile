@@ -24,6 +24,7 @@ zipp = "==3.18.1"
 flask-marshmallow = "*"
 flask-cors = "*"
 marshmallow-sqlalchemy = "*"
+requests = "*"
 
 [dev-packages]
 

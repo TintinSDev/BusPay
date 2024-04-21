@@ -7,6 +7,7 @@ import CustomizableReports from './client/CustomizableReports';
 import Dashboard from './client/Dashboard';
 import Navbar from './client/Navbar';
 import { AuthProvider } from './client/AuthContext';
+import vid2 from './assets/vid2.mp4';
 import 'react-time-picker/dist/TimePicker.css';
 
 import './styles.css';
@@ -44,14 +45,17 @@ const App = () => {
         <Navbar />
         <div>
           <div className="flex mt-10 justify-center">
+            
             <video
               autoPlay
               loop
               muted
               className="rounded-lg w-1/2 border border-orange-700 shadow-sm shadow-orange-400 mx-2 my-4"
             >
+              <source src={vid2} type="video/mp4" />
               Your browser does not support the video tag.
-            </video>
+            </video>  
+            
             <video
               autoPlay
               loop
@@ -62,7 +66,7 @@ const App = () => {
             </video>
           </div>
           <Routes>
-            <Route path="/mobile-payment" element={<FareCollection onPayment={handlePayment} />} />
+            <Route path="/fare-collection" element={<FareCollection onPayment={handlePayment} />} />
             <Route path="/trip-management" element={<TripManagement onAddTrip = {handleAddTrip} onUpdateTrip = {handleUpdateTrip} onDeleteTrip = {handleDeleteTrip} />} />
            
             <Route path="/customizable-reports" element={<CustomizableReports onGenerateReport={handleGenerateReport}onExportReport={ handleExportReport} />} />
