@@ -10,7 +10,7 @@ import { AuthProvider } from "./client/AuthContext";
 // import vid2 from './assets/vid2.mp4';
 import "react-time-picker/dist/TimePicker.css";
 import MyScreen from "./client/Inta";
-import MapComponent from "./client/MapComponent";
+
 
 import "./styles.css";
 
@@ -97,7 +97,6 @@ const App = () => {
             />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/inta" element={<MyScreen />} />
-            <Route path="/map" element={<MapComponent />} />
           </Routes>
         </div>
       </AuthProvider>
