@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 // import TimePicker from 'react-time-picker';
 import PropTypes from 'prop-types';
+// import MapComponent from './MapComponent';
 
 // import { useAuth } from './AuthContext'; // Assuming you have an AuthContext
 
@@ -9,6 +10,7 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
   const [arrivalTime, setArrivalTime] = useState('');
   const [route, setRoute] = useState('');
   const [busIdentifier, setBusIdentifier] = useState('');
+  // const [mapType, setMapType] = useState('roadmap'); 
   const [ trips, setTrips] = useState([]); // Initialize trips as an empty array
   
   
@@ -133,6 +135,9 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
     setRoute('');
     setBusIdentifier('');
   };
+  // const handleChange = (e) => {
+  //   setMapType(e.target.value);
+  // };
 
   return (
     <div>
@@ -165,6 +170,17 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
         <br /> <br />
         <button onClick={handleAddTrip}>Add Trip</button>
       </div>
+      {/* <MapComponent /> */}
+      {/* <div>
+        <h3>Map Options</h3>
+       
+        <label htmlFor="mapType">Map Type:</label>
+        <select value={mapType} onChange={handleChange}>
+          <option value="roadmap">Roadmap</option>
+          <option value="satellite">Satellite</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+      </div> */}
       <div>
   <h3>Trips</h3>
   {trips && trips.length > 0 ? (

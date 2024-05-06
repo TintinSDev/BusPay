@@ -16,6 +16,7 @@ function MyScreen(){
       <input type="text" placeholder="Amount"  />
             <input type="text" placeholder="Phone Number" />
         <button className="intaSendPayButton" data-amount="10" data-currency="KES">Pay via M-PESA</button>
+      
     </div>
   )
   

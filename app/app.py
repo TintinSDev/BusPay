@@ -13,7 +13,7 @@ app = Flask(__name__)
 BASEDIR = os.path.join(os.path.dirname(__file__))
 
 CORS(app)
-# CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 CORS(app, origins="http://127.0.0.1:5173")
 
 
@@ -34,12 +34,12 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 migrate = Migrate(app, db)
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:5173')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# @app.after_request
+# def after_request(response):
+#     response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:5173')
+#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#     return response
 
 @app.route('/trips', methods=['OPTIONS'])
 def handle_options():
@@ -51,7 +51,7 @@ def handle_options():
     
 
 @app.route('/payments', methods=['OPTIONS'])
-def handle_options():
+def handle_payments_options():
     return jsonify(), 200, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
