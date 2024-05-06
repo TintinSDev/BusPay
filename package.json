@@ -11,13 +11,15 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.2.2",
+    "@vercel/postgres": "^0.8.0",
     "chart.js": "^4.4.2",
     "intasend-inlinejs-sdk": "^4.0.0",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.0",
-    "react-time-picker": "^6.6.0"
+    "react-time-picker": "^6.6.0",
+    "recharts": "^2.12.6"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",

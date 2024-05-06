@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Blueprint
+from flask import Flask, request, jsonify, Blueprint,session, redirect, url_for
 import json, requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -8,6 +8,7 @@ from mpesa_payment import MpesaPayment
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from os import environ
+
 
 app = Flask(__name__)
 BASEDIR = os.path.join(os.path.dirname(__file__))
@@ -358,6 +359,11 @@ def login():
 
     return jsonify({'message': 'Login successful'}), 200
 
+@app.route('/logout')
+def logout():
+    # Clear the user's session information
+    session.clear()
+    return redirect(url_for('login'))
 
 
 if __name__ == '__main__':
