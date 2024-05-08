@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from "react-router-dom";
 
 
 // import { useAuth } from './AuthContext'; // Assuming you have an AuthContext
@@ -9,6 +10,7 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
   const [arrivalTime, setArrivalTime] = useState('');
   const [route, setRoute] = useState('');
   const [busIdentifier, setBusIdentifier] = useState('');
+  const navigate = useNavigate();
   // const [mapType, setMapType] = useState('roadmap'); 
   const [ trips, setTrips] = useState([]); // Initialize trips as an empty array
   
@@ -134,9 +136,10 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
     setRoute('');
     setBusIdentifier('');
   };
-  // const handleChange = (e) => {
-  //   setMapType(e.target.value);
-  // };
+  const handlePayment = (e) => {
+    e.preventDefault();
+    navigate('/fare-collection');
+  };
 
   return (
     <div>
@@ -168,6 +171,7 @@ const TripManagement = ({  onAddTrip, onUpdateTrip, onDeleteTrip }) => {
         </select> 
         <br /> <br />
         <button onClick={handleAddTrip}>Add Trip</button>
+        <button onClick={handlePayment}>Proceed to payment</button>
       </div>
       <div>
   <h3>Trips</h3>
