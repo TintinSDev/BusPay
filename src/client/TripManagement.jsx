@@ -73,7 +73,7 @@ const TripManagement = ({ onAddTrip, onUpdateTrip, onDeleteTrip }) => {
     } catch (error) {
       console.error("Error adding trip:", error);
       alert(
-        "Error adding trip. Please try again. If the issue persists, please contact support to add trip"
+        "Error adding trip. Please try again. If the issue persists, please contact support to add trip!!"
       );
     }
   };
