@@ -1,46 +1,52 @@
-from flask import Flask, request, jsonify, Blueprint,session, redirect, url_for
+from flask import Flask, send_from_directory, send_file, request, jsonify, Blueprint,session, redirect, url_for
 import json, requests
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
+from flask_restful import Api
+from models import Trip, User, Payment, TripSchema, Trips_schema, db , ma, TripResource
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 from mpesa_payment import MpesaPayment
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 import os
 from os import environ
 
 
 app = Flask(__name__)
+api = Api(app)
+# Init db
+
 BASEDIR = os.path.join(os.path.dirname(__file__))
-
-CORS(app)
-CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
-CORS(app, origins="http://127.0.0.1:5173")
-
-
-
 
 # Database connection
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASEDIR, 'app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+CORS(app, origins="http://127.0.0.1:5173")
 # payment bleuprints
 payments_bp = Blueprint('payments', __name__)
 app.register_blueprint(payments_bp)
 
-# Init db
-db = SQLAlchemy(app)
-
-# Init Marshmallow
-ma = Marshmallow(app)
-
 migrate = Migrate(app, db)
-# @app.after_request
-# def after_request(response):
-#     response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:5173')
-#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-#     return response
+db.init_app(app)
+ma.init_app(app)
+with app.app_context():
+    db.create_all()
+ 
+Trip_schema = TripSchema()
+Trips_schema = TripSchema(many=True)   
+@app.route('/')
+def root():
+    return send_file(os.path.join(BASEDIR,'static/index.html'))
+
+@app.route('/<path:path>')
+def static_assets(path):
+    if os.path.exists(os.path.join(BASEDIR, 'static', path)):
+        return send_from_directory (os.path.join(BASEDIR, 'static'), path)
+    else:
+        return send_from_directory (os.path.join(BASEDIR,'static/index.html'), path)
+
+
 
 @app.route('/trips', methods=['OPTIONS'])
 def handle_options():
@@ -59,70 +65,7 @@ def handle_payments_options():
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     }
 
-# User model
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    # role = db.Column(db.String(20), nullable=False)  # Admin or Bus Operator
 
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
-
-# Trip Model
-class Trip(db.Model):
-    __tablename__ = 'trips'
-    id = db.Column(db.Integer, primary_key=True)
-    departure_time = db.Column(db.String(255), nullable=False)
-    arrival_time = db.Column(db.String(255), nullable=False)
-    route = db.Column(db.String(100), nullable=False)
-    bus_identifier = db.Column(db.String(50), nullable=False)
-
-    def __init__(self, departure_time, arrival_time, route, bus_identifier):
-        self.departure_time = departure_time
-        self.arrival_time = arrival_time
-        self.route = route
-        self.bus_identifier = bus_identifier
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'departureTime': self.departure_time,
-            'arrivalTime': self.arrival_time,
-            'route': self.route,
-            'busIdentifier': self.bus_identifier
-        }
-        
-#  payments
-class Payment(db.Model):
-    __tablename__ = 'payments'
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float, nullable=False)
-    phone_number = db.Column(db.String(20), nullable=False)
-    payment_method = db.Column(db.String(50), nullable=False)
-    trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=False)
-    trip = db.relationship('Trip', backref=db.backref('payments', lazy=True))
-    
-    def __init__(self, amount, phone_number, payment_method, trip_id):
-        self.amount = amount
-        self.phone_number = phone_number
-        self.payment_method = payment_method
-        self.trip_id = trip_id
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'amount': self.amount,
-            'phone_number': self.phone_number,
-            'payment_method': self.payment_method,
-            'trips_id': self.trip_id
-        }
-        
-
-    def __repr__(self):
-        return f"<Payment {self.id}>" # Mobile Money or Cash
-    
 
 @app.route("/payments", methods=["POST"])
 @cross_origin(origin="http://127.0.0.1:5173")
@@ -247,16 +190,7 @@ def handle_fare_refund():
 def index():
     return 'Hello, World!'
     
-# Trips
-class TripSchema(ma.Schema):
-    class Meta:
-        fields = ('id', 'departure_time', 'arrival_time', 'route', 'bus_identifier')
 
-Trip_schema = TripSchema()
-Trips_schema = TripSchema(many=True)
-
-with app.app_context():
-    db.create_all()
 @app.route('/trips', methods=['GET'])
 def get_trips():
     trips = Trip.query.all()
@@ -275,11 +209,12 @@ def add_trip():
         data = request.get_json()
         departure_time = data.get('departureTime')
         arrival_time = data.get('arrivalTime')
-        route = data.get('route')
+        from_route = data.get('fromRoute')
+        to_route = data.get('toRoute')
         bus_identifier = data.get('busIdentifier')
 
         # Data validation
-        if not all([departure_time, arrival_time, route, bus_identifier]):
+        if not all([departure_time, arrival_time, from_route, to_route, bus_identifier]):
             return jsonify({'error': 'All fields are required'}), 400
 
         # Additional validation checks
@@ -287,7 +222,7 @@ def add_trip():
             return jsonify({'error': 'Departure time must be before arrival time'}), 400
 
         # Create a new Trip instance
-        new_trip = Trip(departure_time=departure_time, arrival_time=arrival_time, route=route, bus_identifier=bus_identifier)
+        new_trip = Trip(departure_time=departure_time, arrival_time=arrival_time, from_route=from_route, to_route=to_route, bus_identifier=bus_identifier)
         db.session.add(new_trip)
         db.session.commit()
 
@@ -307,7 +242,8 @@ def update_trip(trip_id):
     data = request.get_json()
     trip.departure_time = data['departureTime']
     trip.arrival_time = data['arrivalTime']
-    trip.route = data['route']
+    trip.from_route = data['fromRoute']
+    trip.to_route = data['toRoute']
     trip.bus_identifier = data['busIdentifier']
 
     db.session.commit()
@@ -365,6 +301,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+api.add_resource(TripResource,  '/api/trips')
 
 if __name__ == '__main__':
     with app.app_context():

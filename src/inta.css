@@ -1,13 +1,20 @@
-.intaSendPayButton {
+/* .intaSendPayButton {
     background: #0f8028;
     border-radius: 3px;
     border: 1px solid #0e8614;
     color: #fff;
-    height: 34px;
-    width: 200px;
-  }
+    font-size: 14px;
+    padding: 10px 20px;
+    
+   
+  } */
   .intaSendPayButton:hover {
     cursor: pointer;
+    background-color: #0e8614;
+  }
+  
+  .intaSendPayButton:active {
+    background-color: #0e8614;
   }
 
   p {

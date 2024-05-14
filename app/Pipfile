@@ -9,7 +9,7 @@ blinker = "==1.7.0"
 click = "==8.1.7"
 flask = "*"
 flask-migrate = "*"
-flask-sqlalchemy = "==3.1.1"
+flask-sqlalchemy = "*"
 greenlet = "==3.0.3"
 importlib-metadata = "==7.1.0"
 importlib-resources = "==6.4.0"
@@ -25,6 +25,8 @@ flask-marshmallow = "*"
 flask-cors = "*"
 marshmallow-sqlalchemy = "*"
 requests = "*"
+gunicorn = "*"
+flask-restful = "*"
 
 [dev-packages]
 

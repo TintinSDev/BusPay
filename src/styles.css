@@ -18,7 +18,14 @@ nav {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     
 }
-
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1d2634;
+    color: #c6c6e6;
+    font-family: 'Montserrat', sans-serif;
+    opacity: 0.9;
+  }
 li {
     display: inline;
     margin-right: 85px;
@@ -84,4 +91,22 @@ button:hover {
   .chart {
     width: 100%;
   }
+  form h1{
+    background-color: #323274;
+    position:relative;
+    padding: 1rem;
+    border-radius:1rem;
+    font-size: small;
+    width: 65%;
+    text-align: center;
+}
+
+input {
+  padding: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
 

@@ -16,8 +16,14 @@ function Registration({ handleRegister }) {
     setFormData({ ...formData, [name]: value });
   };
 
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // if (!formData.role) {
+    //   alert("Please select a role.");
+    //   return;
+    // }
     try {
       const response = await fetch("http://127.0.0.1:5000/register", {
         method: "POST",
